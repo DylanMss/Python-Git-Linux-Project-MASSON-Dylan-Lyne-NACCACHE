@@ -1,68 +1,57 @@
 import pandas as pd
 import dash
-from dash import dcc, html
+from dash import dcc, html, Input, Output
 import plotly.graph_objs as go
 import datetime
+import os
 
-# Load CSV file
-df = pd.read_csv('prices.csv')
+def load_data():
+    df = pd.read_csv('prices.csv')
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    df['date'] = df['timestamp'].dt.date
+    return df
 
-# Convert timestamp to datetime
-df['timestamp'] = pd.to_datetime(df['timestamp'])
-df['date'] = df['timestamp'].dt.date
+def update_daily_report(df):
+    daily_metrics = df.groupby('date').agg(
+        open_price=('price', 'first'),
+        close_price=('price', 'last'),
+        min_price=('price', 'min'),
+        max_price=('price', 'max'),
+        volatility=('price', 'std')
+    )
+    daily_metrics['percentage_change'] = ((daily_metrics['close_price'] - daily_metrics['open_price']) /
+                                            daily_metrics['open_price']) * 100
+    daily_metrics.to_csv("daily_report.csv")
+    return daily_metrics
 
-# Get today's date
-today = datetime.date.today()
-yesterday = today - datetime.timedelta(days=1)
+def load_daily_report():
+    if os.path.exists("daily_report.csv"):
+        report_df = pd.read_csv("daily_report.csv")
+        return report_df.iloc[-1]
+    return None
 
-# Determine which day's report to use
+df = load_data()
+
+# Check if current time is exactly 20:00 (8 PM)
 current_time = datetime.datetime.now().strftime('%H:%M')
-if current_time >= "16:00":
-    report_date = today  # If it's after 16:00, use today's report
-else:
-    report_date = yesterday  # Before 16:00, show yesterday’s report
+if current_time == "20:00":
+    update_daily_report(df)
 
-# Compute daily metrics
-daily_metrics = df.groupby('date').agg(
-    open_price=('price', 'first'),
-    close_price=('price', 'last'),
-    min_price=('price', 'min'),
-    max_price=('price', 'max'),
-    volatility=('price', lambda x: x.std()),  # Standard deviation
-)
+report = load_daily_report()
 
-daily_metrics['percentage_change'] = (
-    (daily_metrics['close_price'] - daily_metrics['open_price']) / daily_metrics['open_price']
-) * 100
+last_row = df.iloc[-1]
+last_price = float(last_row["price"])
+last_update = last_row["timestamp"]
 
-# Save report data separately
-report_file = "daily_report.csv"
-daily_metrics.to_csv(report_file)
-
-# Load latest report if available
-try:
-    report_df = pd.read_csv("daily_report.csv")
-    latest_report = report_df[report_df['date'] == str(report_date)].iloc[-1]  # Ensure correct date is used
-except (FileNotFoundError, IndexError):
-    latest_report = None
-
-# Get latest available price
-last_price = df.iloc[-1]["price"]
-last_update = df.iloc[-1]["timestamp"]
-
-# Dash App
 app = dash.Dash(__name__)
+server = app.server
 
 app.layout = html.Div([
-    html.H1("Bitcoin Price Dashboard", style={'textAlign': 'center', 'color': '#2c3e50'}),
-
-    # Display last updated price
+    html.H1("Bitcoin Price Dashboard"),
     html.Div([
-        html.H3(f"Last Price: ${last_price:.2f}", style={'color': '#2980b9'}),
+        html.H3(f"Last Price: ${last_price:,.2f}"),
         html.P(f"Last Update: {last_update.strftime('%Y-%m-%d %H:%M:%S')}")
-    ], style={'textAlign': 'center', 'backgroundColor': '#ecf0f1', 'padding': '10px', 'borderRadius': '10px'}),
-
-    # Bitcoin Price Graph
+    ], style={"textAlign": "center", "marginBottom": "20px"}),
     dcc.Graph(
         id="price-graph",
         figure={
@@ -71,45 +60,30 @@ app.layout = html.Div([
                     x=df["timestamp"],
                     y=df["price"],
                     mode="lines+markers",
-                    name="Bitcoin Price"
+                    name="Bitcoin Price",
+                    marker=dict(color="#e74c3c"),
+                    line=dict(color="#2ecc71")
                 )
             ],
             "layout": go.Layout(
                 title="Bitcoin Price Evolution",
                 xaxis={"title": "Date and Time"},
                 yaxis={"title": "Price (USD)"},
-                plot_bgcolor="#f4f4f4"
+                plot_bgcolor="#ecf0f1",
+                paper_bgcolor="#bdc3c7"
             )
         }
     ),
-
-    # Bitcoin Price Stats Section
     html.Div([
-        html.H3("Bitcoin (BTC) Price Stats", style={'textAlign': 'center', 'color': '#2c3e50'}),
+        html.H3("Daily Report (Updated at 20:00)", style={'textAlign': 'center'}),
         html.Div([
-            html.Div([
-                html.P("Opening Price", style={'fontWeight': 'bold'}),
-                html.P(f"${latest_report['open_price']:.2f}" if latest_report is not None else "N/A")
-            ], style={'width': '20%', 'display': 'inline-block', 'textAlign': 'center'}),
-            html.Div([
-                html.P("Closing Price", style={'fontWeight': 'bold'}),
-                html.P(f"${latest_report['close_price']:.2f}" if latest_report is not None else "N/A")
-            ], style={'width': '20%', 'display': 'inline-block', 'textAlign': 'center'}),
-            html.Div([
-                html.P("24h Range", style={'fontWeight': 'bold'}),
-                html.P(f"${latest_report['min_price']:.2f} - ${latest_report['max_price']:.2f}" if latest_report is not None else "N/A")
-            ], style={'width': '20%', 'display': 'inline-block', 'textAlign': 'center'}),
-            html.Div([
-                html.P("Price Change (%)", style={'fontWeight': 'bold'}),
-                html.P(f"{latest_report['percentage_change']:.2f}%" if latest_report is not None else "N/A")
-            ], style={'width': '20%', 'display': 'inline-block', 'textAlign': 'center'}),
-            html.Div([
-                html.P("Volatility", style={'fontWeight': 'bold'}),
-                html.P(f"{latest_report['volatility']:.4f}" if latest_report is not None else "N/A")
-            ], style={'width': '20%', 'display': 'inline-block', 'textAlign': 'center'}),
-        ], style={'display': 'flex', 'justifyContent': 'center', 'marginTop': '10px'}),
-    ], style={'backgroundColor': '#ecf0f1', 'padding': '15px', 'borderRadius': '10px', 'marginTop': '20px'})
-])
+            html.P(f"Opening Price: ${float(report['open_price']):,.2f}") if report is not None else html.P("No report available"),
+            html.P(f"Closing Price: ${float(report['close_price']):,.2f}") if report is not None else None,
+            html.P(f"Percentage Change: {float(report['percentage_change']):.2f}%") if report is not None else None,
+            html.P(f"Volatility: {float(report['volatility']):.4f}") if report is not None else None,
+        ], style={"textAlign": "center", "backgroundColor": "#f1c40f", "padding": "15px", "borderRadius": "10px"})
+    ], style={"marginTop": "20px"})
+], style={"fontFamily": "Arial, sans-serif", "backgroundColor": "#ecf0f1", "padding": "20px"})
 
 if __name__ == '__main__':
     app.run_server(debug=True)
