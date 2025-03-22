@@ -1,4 +1,5 @@
 #!/bin/bash
+echo "$(date): Scraping script executed" >> /Users/lynenaccache/Desktop/scrappingProject/debug_cron.log
 
 # (Bitcoin sur Coinlore) 
 URL="https://www.coinlore.com/coin/bitcoin"
