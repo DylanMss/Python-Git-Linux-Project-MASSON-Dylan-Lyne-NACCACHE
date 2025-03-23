@@ -1,46 +1,38 @@
 #!/bin/bash
-echo "$(date): Scraping script executed" >> /Users/lynenaccache/Desktop/scrappingProject/debug_cron.log
+# Scrape le prix du Bitcoin depuis CoinDesk
 
-# (Bitcoin sur Coinlore) 
-URL="https://www.coinlore.com/coin/bitcoin"
-
+URL="https://www.coindesk.com/price/bitcoin"
 echo "Scraping $URL ..."
 
-# On recupere l'HTML en suivant les redirections et en imitant un navigateur
-HTML=$(curl -s -L -A "Mozilla/5.0" "$URL")
+# Récupérer le HTML en simulant un navigateur
+HTML=$(curl -sL -A "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36" "$URL")
 
-# On supprime les retours à la ligne pour metre tout le HTML sur une seule ligne
-HTML_ONELINE=$(echo "$HTML" | tr -d '\n' | tr -d '\r')
+# Sauvegarder le HTML
+echo "$HTML" > debug_coindesk.html
+echo "Le contenu HTML a été sauvegardé dans debug_coindesk.html"
 
-# Sauvegarde du HTML dans un fichier debug pour voir le contenu
-echo "$HTML_ONELINE" > debug.html
-echo "The HTML content has been saved in debug.html"
-
-# Vérifier que le HTML est bien récupéré (affiche les 300 premiers caractères)
-echo "$HTML_ONELINE" | cut -c1-300
-
-# Extraction du prix avec awk pour compatibilité macOS
-PRICE=$(echo "$HTML_ONELINE" | awk -F'id="hprice"' '{print $2}' | awk -F'>' '{print $2}' | awk -F'<' '{print $1}' | tr -d '$' | tr -d ' ')
+# Extraction du prix
+PRICE=$(echo "$HTML" | grep -oE '\$[0-9,]+\.[0-9]{2}' | head -n 1)
 
 if [ -z "$PRICE" ]; then
-    echo "Error: Price not found."
+    echo "Erreur : Prix non trouvé. Vérification de la regex ou la structure du HTML."
     exit 1
 fi
 
-echo "Current Bitcoin price: \$$PRICE"
+echo "Prix actuel du Bitcoin : $PRICE"
 
-# On supprime la virgule des milliers pour éviter d'avoir une colonne en trop
-PRICE_CLEAN=$(echo "$PRICE" | tr -d ',')
+# Nettoyage du symbole $ et des virgules
+PRICE_CLEAN=$(echo "$PRICE" | tr -d '$' | tr -d ',')
 
-# Récupérer la date et l'heure actuelles
-TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
+# Enregistrer dans un fichier CSV
 CSV_FILE="prices.csv"
+TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
 
-# Si le fichier n'existe pas ou est vide, on ajoute l'en-tête
-if [ ! -f "$CSV_FILE" ] || [ ! -s "$CSV_FILE" ]; then
-    echo "timestamp,price" > "$CSV_FILE"
+#  on crée l'entête
+if [ ! -f "$CSV_FILE" ]; then
+  echo "timestamp,price" > "$CSV_FILE"
 fi
 
-# Ajouter la nouvelle ligne avec timestamp et prix
+# On ajoute la nouvelle ligne
 echo "$TIMESTAMP,$PRICE_CLEAN" >> "$CSV_FILE"
-echo "Data saved in $CSV_FILE"
+echo "Données enregistrées dans $CSV_FILE"
