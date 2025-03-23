@@ -8,7 +8,7 @@ import datetime
 app = dash.Dash(__name__)
 server = app.server  # pour déploiement
 
-
+# --- FONCTIONS OUTILS ---
 
 def load_data():
     """
@@ -40,64 +40,141 @@ def info_card(title, value, subtext=None):
         ]
     )
 
-# --- LAYOUT ---
+# --- PAGES ---
 
-app.layout = html.Div(
-    style={'fontFamily': 'Arial, sans-serif', 'margin': '0 auto', 'maxWidth': '800px', 'padding': '20px'},
-    children=[
+def presentation_page():
+    """
+    Page de présentation, affichant les photos de Lyne et Dylan,
+    et expliquant brièvement pourquoi le Bitcoin a été choisi.
+    """
+    return html.Div(
+        style={'fontFamily': 'Arial, sans-serif', 'padding': '20px'},
+        children=[
+            html.H1("Présentation", style={'textAlign': 'center'}),
+            html.Div(
+                style={'display': 'flex', 'justifyContent': 'center', 'marginTop': '20px'},
+                children=[
 
-        html.Div(
-            style={'display': 'flex', 'alignItems': 'center'},
-            children=[
-                html.Img(src='https://upload.wikimedia.org/wikipedia/commons/4/46/Bitcoin.svg',
-                         style={'width': '60px', 'marginRight': '10px'}),
-                html.H1("Bitcoin Dashboard", style={'margin': '0'})
-            ]
-        ),
+                ]
+            ),
+            html.Div(
+                style={'maxWidth': '800px', 'margin': '20px auto', 'lineHeight': '1.5'},
+                children=[
+                    html.P("Ce projet a été réalisé par Lyne Naccache et Dylan Masson."),
+                    html.P(
+                        "Nous avons choisi d'analyser le Bitcoin, car il s'agit d'un actif "
+                        "financier très dynamique, offrant des variations intéressantes "
+                        "pour la mise en place d'un scrapping continu et d'un dashboard "
+                        "temps-réel."
+                        "Les données sont directement extraites (scrapées) depuis https://www.coindesk.com/price/bitcoin."
+                    )
+                ]
+            )
+        ]
+    )
 
-        html.Div(id='top-info', style={'marginTop': '20px'}),
+def dashboard_page():
+    """
+    Page principale du Dashboard, avec le graphique,
+    les informations top-info et le rapport quotidien.
+    """
+    return html.Div(
+        style={'fontFamily': 'Arial, sans-serif', 'margin': '0 auto', 'maxWidth': '800px', 'padding': '20px'},
+        children=[
+            # Titre et logo
+            html.Div(
+                style={'display': 'flex', 'alignItems': 'center'},
+                children=[
+                    html.Img(src='https://upload.wikimedia.org/wikipedia/commons/4/46/Bitcoin.svg',
+                             style={'width': '60px', 'marginRight': '10px'}),
+                    html.H1("Bitcoin Dashboard", style={'margin': '0'})
+                ]
+            ),
+            html.Div(id='top-info', style={'marginTop': '20px'}),
 
-        # Sélecteur d'intervalle pour le graphe
-        html.Div(
-            style={'marginTop': '20px'},
-            children=[
-                dcc.RadioItems(
-                    id='range-selector',
-                    options=[
-                        {'label': '1H', 'value': '1H'},
-                        {'label': '24H', 'value': '24H'},
-                        {'label': '7D', 'value': '7D'},
-                    ],
-                    value='24H',  
-                    inline=True,
-                    style={'marginBottom': '10px'}
-                )
-            ]
-        ),
+            # Sélecteur d'intervalle pour le graphe
+            html.Div(
+                style={'marginTop': '20px'},
+                children=[
+                    dcc.RadioItems(
+                        id='range-selector',
+                        options=[
+                            {'label': '1H', 'value': '1H'},
+                            {'label': '24H', 'value': '24H'},
+                            {'label': '7D', 'value': '7D'},
+                        ],
+                        value='24H',  # bouton par défaut sur 24H
+                        inline=True,
+                        style={'marginBottom': '10px'}
+                    )
+                ]
+            ),
 
+            dcc.Graph(id='price-graph', style={'height': '400px'}),
 
-        dcc.Graph(id='price-graph', style={'height': '400px'}),
+            # Onglet Basic uniquement
+            dcc.Tabs(
+                id='tabs',
+                value='tab-basic',
+                children=[
+                    dcc.Tab(label='Basic', value='tab-basic', children=[
+                        html.Div(id='basic-content', style={'padding': '10px'})
+                    ])
+                ]
+            ),
 
-        # Onglets Basic / Advanced
-        dcc.Tabs(
-            id='tabs',
-            value='tab-basic',
-            children=[
-                dcc.Tab(label='Basic', value='tab-basic', children=[
-                    html.Div(id='basic-content', style={'padding': '10px'})
-                ]),
-                dcc.Tab(label='Advanced', value='tab-advanced', children=[
-                    html.Div(id='advanced-content', style={'padding': '10px'})
-                ])
-            ]
-        ),
+            # Zone du rapport quotidien
+            html.Div(id='daily-report', style={'marginTop': '20px'})
+        ]
+    )
 
-        # Zone du rapport quotidien
-        html.Div(id='daily-report', style={'marginTop': '20px'})
-    ]
-)
+# --- NAVIGATION (layout principal) ---
 
-# --- CALLBACKS ---
+app.layout = html.Div([
+    dcc.Location(id='url', refresh=False),
+
+    # Barre de navigation
+    html.Nav(
+        style={
+            'display': 'flex',
+            'justifyContent': 'center',
+            'alignItems': 'center',
+            'backgroundColor': '#f8f9fa',
+            'padding': '10px',
+            'marginBottom': '20px'
+        },
+        children=[
+            dcc.Link("Présentation", href="/", style={
+                'margin': '0 20px',
+                'textDecoration': 'none',
+                'color': '#007BFF',
+                'fontWeight': 'bold'
+            }),
+            dcc.Link("Dashboard", href="/dashboard", style={
+                'margin': '0 20px',
+                'textDecoration': 'none',
+                'color': '#007BFF',
+                'fontWeight': 'bold'
+            })
+        ]
+    ),
+
+    # Contenu de la page
+    html.Div(id='page-content')
+])
+
+# --- CALLBACK DE NAVIGATION ---
+
+@app.callback(Output('page-content', 'children'),
+              Input('url', 'pathname'))
+def display_page(pathname):
+    if pathname == "/dashboard":
+        return dashboard_page()
+    else:
+        # Par défaut, on renvoie la page de présentation
+        return presentation_page()
+
+# --- CALLBACKS DU DASHBOARD ---
 
 @app.callback(
     Output('top-info', 'children'),
@@ -157,18 +234,15 @@ def update_dashboard(selected_range):
 
 @app.callback(
     Output('basic-content', 'children'),
-    Output('advanced-content', 'children'),
-    Input('tabs', 'value'),
     Input('range-selector', 'value')
 )
-def update_tabs(selected_tab, selected_range):
+def update_basic(selected_range):
     """
     Onglet Basic : calcule open, high, low, close sur l'intervalle (1H, 24H, 7D)
-    Onglet Advanced : exemple statique.
     """
     df = load_data()
     if df.empty:
-        return html.Div("No data"), html.Div()
+        return html.Div("No data")
 
     # Filtrage selon l'intervalle
     now = df['timestamp'].max()
@@ -181,7 +255,7 @@ def update_tabs(selected_tab, selected_range):
 
     filtered = df[df['timestamp'] >= start_time].copy()
     if filtered.empty:
-        basic_layout = html.Div("Aucune donnée pour cet intervalle.")
+        return html.Div("Aucune donnée pour cet intervalle.")
     else:
         filtered.sort_values('timestamp', inplace=True)
         open_ = filtered.iloc[0]['price']
@@ -194,17 +268,7 @@ def update_tabs(selected_tab, selected_range):
             html.H4(f"Low:   ${low_:,.2f}"),
             html.H4(f"Close: ${close_:,.2f}")
         ])
-
-    advanced_layout = html.Div([
-        html.H4("1H Variation: +0.95%"),
-        html.H4("Block Number: 889,065"),
-        html.H4("Network Hash Rate: 1.9T H/s (exemple)")
-    ])
-
-    if selected_tab == 'tab-basic':
-        return basic_layout, html.Div()
-    else:
-        return html.Div(), advanced_layout
+        return basic_layout
 
 @app.callback(
     Output('daily-report', 'children'),
@@ -243,13 +307,13 @@ def update_daily_report(selected_range):
     evolution = (close_price - open_price) / open_price * 100
 
     report_layout = html.Div([
-        html.H3(f"Rapport quotidien du {report_date.date()} à 20 H"),
+        html.H3(f"Rapport quotidien du {report_date.date()} à 20h"),
         html.P(f"Open:  ${open_price:,.2f}"),
         html.P(f"Close: ${close_price:,.2f}"),
         html.P(f"High:  ${high_price:,.2f}"),
         html.P(f"Low:   ${low_price:,.2f}"),
         html.P(f"Volatilité: {volatility:.2f}%"),
-        html.P(f"Evolution:  {evolution:.2f}%")
+        html.P(f"Évolution:  {evolution:.2f}%")
     ], style={
         'border': '1px solid #ccc',
         'padding': '10px',
