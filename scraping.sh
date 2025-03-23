@@ -1,42 +1,38 @@
 #!/bin/bash
+# Scrape le prix du Bitcoin depuis CoinDesk
 
-# (Bitcoin sur Coinlore) 
-URL="https://www.coinlore.com/coin/bitcoin"
-
+URL="https://www.coindesk.com/price/bitcoin"
 echo "Scraping $URL ..."
 
-# On recupere l'HTML en suivant les redirections
-HTML=$(curl -s -L -A "Mozilla/5.0" "$URL")
+# Récupérer le HTML en simulant un navigateur
+HTML=$(curl -sL -A "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36" "$URL")
 
-# On supprime les retours à la ligne pour metre tout le HTML sur une ligne
-HTML_ONELINE=$(echo "$HTML" | sed ':a;N;$!ba;s/\n//g')
+# Sauvegarder le HTML
+echo "$HTML" > debug_coindesk.html
+echo "Le contenu HTML a été sauvegardé dans debug_coindesk.html"
 
-echo "$HTML_ONELINE" > debug.html
-echo "The HTML content has been saved in debug.html"
-
-# voir si ca commence bien
-echo "$HTML_ONELINE" | head -n 1 | cut -c1-300
-
-# extraire le prix dans la balise span avec id hprice
-PRICE=$(echo "$HTML_ONELINE" | grep -oP '(?<=\$)[0-9,\.]+' | head -n 1)
+# Extraction du prix
+PRICE=$(echo "$HTML" | grep -oE '\$[0-9,]+\.[0-9]{2}' | head -n 1)
 
 if [ -z "$PRICE" ]; then
-    echo "Error: Price not found."
+    echo "Erreur : Prix non trouvé. Vérification de la regex ou la structure du HTML."
     exit 1
 fi
 
-echo "Current Bitcoin price: \$$PRICE"
+echo "Prix actuel du Bitcoin : $PRICE"
 
-# On supprime la virgule des milliers pour que le CSV ait deux colonnes seulement
-PRICE_CLEAN=$(echo "$PRICE" | tr -d ',')
+# Nettoyage du symbole $ et des virgules
+PRICE_CLEAN=$(echo "$PRICE" | tr -d '$' | tr -d ',')
 
-TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
+# Enregistrer dans un fichier CSV
 CSV_FILE="prices.csv"
+TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
 
-# Si le fichier n'existe pas ou est vide, on ajoute l'entête
-if [ ! -f "$CSV_FILE" ] || [ ! -s "$CSV_FILE" ]; then
-    echo "timestamp,price" > "$CSV_FILE"
+#  on crée l'entête
+if [ ! -f "$CSV_FILE" ]; then
+  echo "timestamp,price" > "$CSV_FILE"
 fi
 
+# On ajoute la nouvelle ligne
 echo "$TIMESTAMP,$PRICE_CLEAN" >> "$CSV_FILE"
-echo "Data saved in $CSV_FILE"
+echo "Données enregistrées dans $CSV_FILE"
