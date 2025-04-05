@@ -6,14 +6,14 @@ import numpy as np
 import datetime
 
 app = dash.Dash(__name__)
-server = app.server  # pour déploiement
+server = app.server  # for deployment
 
-# --- FONCTIONS OUTILS ---
+# --- UTILITY FUNCTIONS ---
 
 def load_data():
     """
-    Charge le CSV contenant: timestamp (datetime), price (float)
-    et trie par ordre chronologique.
+    Loads the CSV file containing: timestamp (datetime), price (float),
+    and sorts it chronologically.
     """
     df = pd.read_csv('prices.csv', parse_dates=['timestamp'])
     df.sort_values('timestamp', inplace=True)
@@ -21,7 +21,7 @@ def load_data():
 
 def info_card(title, value, subtext=None):
     """
-    Petite "card" d'information pour un affichage stylé.
+    Small info card for clean display.
     """
     return html.Div(
         style={
@@ -73,13 +73,13 @@ def presentation_page():
 
 def dashboard_page():
     """
-    Page principale du Dashboard, avec le graphique,
-    les informations top-info et le rapport quotidien.
+    Main dashboard page, with the graph,
+    top-info cards, and daily report section.
     """
     return html.Div(
         style={'fontFamily': 'Arial, sans-serif', 'margin': '0 auto', 'maxWidth': '800px', 'padding': '20px'},
         children=[
-            # Titre et logo
+            # Title and logo
             html.Div(
                 style={'display': 'flex', 'alignItems': 'center'},
                 children=[
@@ -90,7 +90,7 @@ def dashboard_page():
             ),
             html.Div(id='top-info', style={'marginTop': '20px'}),
 
-            # Sélecteur d'intervalle pour le graphe
+            # Interval selector for the graph
             html.Div(
                 style={'marginTop': '20px'},
                 children=[
@@ -101,7 +101,7 @@ def dashboard_page():
                             {'label': '24H', 'value': '24H'},
                             {'label': '7D', 'value': '7D'},
                         ],
-                        value='24H',  # bouton par défaut sur 24H
+                        value='24H',  # default button on 24H
                         inline=True,
                         style={'marginBottom': '10px'}
                     )
@@ -110,7 +110,7 @@ def dashboard_page():
 
             dcc.Graph(id='price-graph', style={'height': '400px'}),
 
-            # Onglet Basic uniquement
+            # Basic tab only
             dcc.Tabs(
                 id='tabs',
                 value='tab-basic',
@@ -121,17 +121,17 @@ def dashboard_page():
                 ]
             ),
 
-            # Zone du rapport quotidien
+            # Daily Report Area
             html.Div(id='daily-report', style={'marginTop': '20px'})
         ]
     )
 
-# --- NAVIGATION (layout principal) ---
+# --- MAIN LAYOUT AND NAVIGATION ---
 
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
 
-    # Barre de navigation
+    # Navigation bar
     html.Nav(
         style={
             'display': 'flex',
@@ -142,7 +142,7 @@ app.layout = html.Div([
             'marginBottom': '20px'
         },
         children=[
-            dcc.Link("Présentation", href="/", style={
+            dcc.Link("Presentation", href="/", style={
                 'margin': '0 20px',
                 'textDecoration': 'none',
                 'color': '#007BFF',
@@ -157,11 +157,11 @@ app.layout = html.Div([
         ]
     ),
 
-    # Contenu de la page
+    # Page content
     html.Div(id='page-content')
 ])
 
-# --- CALLBACK DE NAVIGATION ---
+# --- ROUTING CALLBACK ---
 
 @app.callback(Output('page-content', 'children'),
               Input('url', 'pathname'))
@@ -169,10 +169,10 @@ def display_page(pathname):
     if pathname == "/dashboard":
         return dashboard_page()
     else:
-        # Par défaut, on renvoie la page de présentation
+        # By default, we return the presentation page
         return presentation_page()
 
-# --- CALLBACKS DU DASHBOARD ---
+# --- DASHBOARD CALLBACKS ---
 
 @app.callback(
     Output('top-info', 'children'),
@@ -181,12 +181,12 @@ def display_page(pathname):
 )
 def update_dashboard(selected_range):
     """
-    Met à jour la zone "top-info" (ex: dernier prix + heure)
-    et le graphique, selon l'intervalle (1H, 24H, 7D).
+    Updates top-info section (e.g., latest price + time)
+    and graph depending on selected interval (1H, 24H, 7D).
     """
     df = load_data()
     if df.empty:
-        return html.Div("Pas de données"), go.Figure()
+        return html.Div("No data available."), go.Figure()
 
     # Dernier prix et son timestamp
     latest_price = df['price'].iloc[-1]
@@ -201,7 +201,7 @@ def update_dashboard(selected_range):
         ]
     )
 
-    # Définir l'intervalle pour le graphique
+    # Set the interval for the chart
     now = df['timestamp'].max()
     if selected_range == '1H':
         start_time = now - pd.Timedelta(hours=1)
@@ -236,13 +236,13 @@ def update_dashboard(selected_range):
 )
 def update_basic(selected_range):
     """
-    Onglet Basic : calcule open, high, low, close sur l'intervalle (1H, 24H, 7D)
+    Calculates open, high, low, close for the selected interval (1H, 24H, 7D)
     """
     df = load_data()
     if df.empty:
-        return html.Div("No data")
+        return html.Div("No data available.")
 
-    # Filtrage selon l'intervalle
+    # Filtering by interval
     now = df['timestamp'].max()
     if selected_range == '1H':
         start_time = now - pd.Timedelta(hours=1)
@@ -253,7 +253,7 @@ def update_basic(selected_range):
 
     filtered = df[df['timestamp'] >= start_time].copy()
     if filtered.empty:
-        return html.Div("Aucune donnée pour cet intervalle.")
+        return html.Div("No data for this interval.")
     else:
         filtered.sort_values('timestamp', inplace=True)
         open_ = filtered.iloc[0]['price']
@@ -261,6 +261,7 @@ def update_basic(selected_range):
         high_ = filtered['price'].max()
         low_ = filtered['price'].min()
         basic_layout = html.Div([
+            html.H3("Price Summary", style={'marginBottom': '15px'}),
             html.H4(f"Open:  ${open_:,.2f}"),
             html.H4(f"High:  ${high_:,.2f}"),
             html.H4(f"Low:   ${low_:,.2f}"),
@@ -270,19 +271,19 @@ def update_basic(selected_range):
 
 @app.callback(
     Output('daily-report', 'children'),
-    Input('range-selector', 'value')  # Utilisé pour déclencher la mise à jour du rapport quotidien
+    Input('range-selector', 'value')  # Used to trigger the daily report update
 )
 def update_daily_report(selected_range):
     """
-    Affiche le rapport quotidien mis à jour à 20h chaque jour.
-    Si l'heure actuelle est avant 20h, le rapport de la veille est affiché.
-    Calcule : open, close, high, low, volatilité et évolution.
+    Displays daily report at 8 PM.
+    If before 8 PM, shows the previous day's report.
+    Calculates: open, close, high, low, volatility, and evolution.
     """
     df = load_data()
     if df.empty:
-        return html.Div("Pas de données pour le rapport quotidien.")
+        return html.Div("No data for daily report.")
 
-    # Si l'heure actuelle est avant 20h, on affiche le rapport de la veille
+    # If the current time is before 8 p.m., the report from the previous day is displayed.
     now = pd.Timestamp.now()
     report_date = now.normalize()
     if now.hour < 20:
@@ -293,25 +294,33 @@ def update_daily_report(selected_range):
     day_data = df[(df['timestamp'] >= day_start) & (df['timestamp'] < day_end)]
 
     if day_data.empty:
-        return html.Div(f"Aucune donnée pour le {report_date.date()}.")
+        return html.Div(f"No data for {report_date.date()}.")
 
     day_data.sort_values('timestamp', inplace=True)
     open_price = day_data.iloc[0]['price']
     close_price = day_data.iloc[-1]['price']
     high_price = day_data['price'].max()
     low_price = day_data['price'].min()
-    # Calcul de la volatilité en pourcentage
+
+    # Calculation of volatility in percentage
     volatility = (high_price - low_price) / open_price * 100
     evolution = (close_price - open_price) / open_price * 100
 
     report_layout = html.Div([
-        html.H3(f"Rapport quotidien du {report_date.date()} à 20h"),
+        html.H3(f"Daily report for {report_date.date()} at 8 PM"),
         html.P(f"Open:  ${open_price:,.2f}"),
         html.P(f"Close: ${close_price:,.2f}"),
         html.P(f"High:  ${high_price:,.2f}"),
         html.P(f"Low:   ${low_price:,.2f}"),
-        html.P(f"Volatilité: {volatility:.2f}%"),
-        html.P(f"Évolution:  {evolution:.2f}%")
+        html.P(f"Volatility: {volatility:.2f}%", style={'fontWeight': 'bold'}),
+        html.P(
+                f"Evolution: {evolution:.2f}%",
+                style={
+                    'color': 'green' if evolution >= 0 else 'red',
+                    'fontWeight': 'bold'
+    }
+)
+
     ], style={
         'border': '1px solid #ccc',
         'padding': '10px',
@@ -323,4 +332,4 @@ def update_daily_report(selected_range):
     return report_layout
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run(debug=True)
