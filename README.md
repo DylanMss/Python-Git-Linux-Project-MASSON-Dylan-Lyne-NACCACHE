@@ -20,7 +20,7 @@ Built with:
 
 ---
 
-## 🛠️ How It Works
+## How It Works
 
 1. Scraping: The `scraping.sh` script fetches the current BTC price from CoinDesk and appends it to `prices.csv`.
 2. Dashboard: The `dashboard.py` file loads this CSV and displays the data through interactive graphs and components using Dash.
