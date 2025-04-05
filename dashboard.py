@@ -44,13 +44,13 @@ def info_card(title, value, subtext=None):
 
 def presentation_page():
     """
-    Page de présentation, affichant les photos de Lyne et Dylan,
-    et expliquant brièvement pourquoi le Bitcoin a été choisi.
+    Presentation page, displaying the project creators: Lyne and Dylan, 
+    and briefly explaining why Bitcoin was chosen.
     """
     return html.Div(
         style={'fontFamily': 'Arial, sans-serif', 'padding': '20px'},
         children=[
-            html.H1("Présentation", style={'textAlign': 'center'}),
+            html.H1("Presentation", style={'textAlign': 'center'}),
             html.Div(
                 style={'display': 'flex', 'justifyContent': 'center', 'marginTop': '20px'},
                 children=[
@@ -60,14 +60,12 @@ def presentation_page():
             html.Div(
                 style={'maxWidth': '800px', 'margin': '20px auto', 'lineHeight': '1.5'},
                 children=[
-                    html.P("Ce projet a été réalisé par Lyne Naccache et Dylan Masson."),
-                    html.P(
-                        "Nous avons choisi d'analyser le Bitcoin, car il s'agit d'un actif "
-                        "financier très dynamique, offrant des variations intéressantes "
-                        "pour la mise en place d'un scrapping continu et d'un dashboard "
-                        "temps-réel."
-                        "Les données sont directement extraites (scrapées) depuis https://www.coindesk.com/price/bitcoin."
-                    )
+                            html.P("This project was created by Lyne Naccache and Dylan Masson."),
+                            html.P(
+                            "We chose to analyze Bitcoin because it is a highly dynamic financial asset, "
+                            "making it ideal for continuous scraping and real-time dashboard tracking. "
+                            "The data is scraped directly from https://www.coindesk.com/price/bitcoin."
+                            )
                 ]
             )
         ]
