@@ -6,14 +6,14 @@ import numpy as np
 import datetime
 
 app = dash.Dash(__name__)
-server = app.server  # for deployment
+server = app.server  # pour le déploiement
 
-# --- UTILITY FUNCTIONS ---
+# --- FONCTIONS UTILITAIRES ---
 
 def load_data():
     """
-    Loads the CSV file containing: timestamp (datetime), price (float),
-    and sorts it chronologically.
+    Charge le fichier CSV contenant : timestamp (datetime), price (float),
+    et trie les données par ordre chronologique.
     """
     df = pd.read_csv('prices.csv', parse_dates=['timestamp'])
     df.sort_values('timestamp', inplace=True)
@@ -21,7 +21,7 @@ def load_data():
 
 def info_card(title, value, subtext=None):
     """
-    Small info card for clean display.
+    Renvoie une "card" d'information pour un affichage propre.
     """
     return html.Div(
         style={
@@ -30,7 +30,7 @@ def info_card(title, value, subtext=None):
             'borderRadius': '8px',
             'padding': '10px',
             'margin': '5px',
-            'width': '100vw',
+            'width': '180px',
             'textAlign': 'center'
         },
         children=[
@@ -44,28 +44,21 @@ def info_card(title, value, subtext=None):
 
 def presentation_page():
     """
-    Presentation page, displaying the project creators: Lyne and Dylan, 
-    and briefly explaining why Bitcoin was chosen.
+    Page de présentation affichant les créateurs et une brève explication.
     """
     return html.Div(
         style={'fontFamily': 'Arial, sans-serif', 'padding': '20px'},
         children=[
             html.H1("Presentation", style={'textAlign': 'center'}),
             html.Div(
-                style={'display': 'flex', 'justifyContent': 'center', 'marginTop': '20px'},
-                children=[
-
-                ]
-            ),
-            html.Div(
                 style={'maxWidth': '800px', 'margin': '20px auto', 'lineHeight': '1.5'},
                 children=[
-                            html.P("This project was created by Lyne Naccache and Dylan Masson."),
-                            html.P(
-                            "We chose to analyze Bitcoin because it is a highly dynamic financial asset, "
-                            "making it ideal for continuous scraping and real-time dashboard tracking. "
-                            "The data is scraped directly from https://www.coindesk.com/price/bitcoin."
-                            )
+                    html.P("This project was created by Lyne Naccache and Dylan Masson."),
+                    html.P(
+                        "We chose to analyze Bitcoin because it is a highly dynamic financial asset, "
+                        "making it ideal for continuous scraping and real-time dashboard tracking. "
+                        "The data is scraped directly from https://www.coindesk.com/price/bitcoin."
+                    )
                 ]
             )
         ]
@@ -73,13 +66,13 @@ def presentation_page():
 
 def dashboard_page():
     """
-    Main dashboard page, with the graph,
-    top-info cards, and daily report section.
+    Page principale du dashboard avec le graphique, les cards d'information,
+    et le rapport quotidien.
     """
     return html.Div(
         style={'fontFamily': 'Arial, sans-serif', 'margin': '0 auto', 'maxWidth': '800px', 'padding': '20px'},
         children=[
-            # Title and logo
+            # Titre et logo
             html.Div(
                 style={'display': 'flex', 'alignItems': 'center'},
                 children=[
@@ -90,7 +83,7 @@ def dashboard_page():
             ),
             html.Div(id='top-info', style={'marginTop': '20px'}),
 
-            # Interval selector for the graph
+            # Sélecteur d'intervalle pour le graphique
             html.Div(
                 style={'marginTop': '20px'},
                 children=[
@@ -101,16 +94,17 @@ def dashboard_page():
                             {'label': '24H', 'value': '24H'},
                             {'label': '7D', 'value': '7D'},
                         ],
-                        value='24H',  # default button on 24H
+                        value='24H',  # valeur par défaut
                         inline=True,
                         style={'marginBottom': '10px'}
                     )
                 ]
             ),
 
+            # Graphique du prix
             dcc.Graph(id='price-graph', style={'height': '400px'}),
 
-            # Basic tab only
+            # Onglets (ici, seul l'onglet "Basic" est utilisé)
             dcc.Tabs(
                 id='tabs',
                 value='tab-basic',
@@ -121,17 +115,18 @@ def dashboard_page():
                 ]
             ),
 
-            # Daily Report Area
-            html.Div(id='daily-report', style={'marginTop': '20px'})
+            # Section du rapport quotidien
+            html.H2("Daily Report (mis à jour à 20h)", style={'marginTop': '30px'}),
+            html.Div(id='daily-report', style={'display': 'flex', 'flexWrap': 'wrap'})
         ]
     )
 
-# --- MAIN LAYOUT AND NAVIGATION ---
+# --- LAYOUT PRINCIPAL ET NAVIGATION ---
 
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
 
-    # Navigation bar
+    # Barre de navigation
     html.Nav(
         style={
             'display': 'flex',
@@ -157,11 +152,11 @@ app.layout = html.Div([
         ]
     ),
 
-    # Page content
+    # Contenu de la page
     html.Div(id='page-content')
 ])
 
-# --- ROUTING CALLBACK ---
+# --- CALLBACKS DE ROUTING ---
 
 @app.callback(Output('page-content', 'children'),
               Input('url', 'pathname'))
@@ -169,10 +164,10 @@ def display_page(pathname):
     if pathname == "/dashboard":
         return dashboard_page()
     else:
-        # By default, we return the presentation page
+        # Par défaut, afficher la page de présentation
         return presentation_page()
 
-# --- DASHBOARD CALLBACKS ---
+# --- CALLBACKS DU DASHBOARD ---
 
 @app.callback(
     Output('top-info', 'children'),
@@ -181,14 +176,14 @@ def display_page(pathname):
 )
 def update_dashboard(selected_range):
     """
-    Updates top-info section (e.g., latest price + time)
-    and graph depending on selected interval (1H, 24H, 7D).
+    Met à jour la section top-info (prix actuel + heure) et le graphique en fonction de l'intervalle (1H, 24H, 7D).
+    Les timestamps sont utilisés tels quels depuis le CSV.
     """
     df = load_data()
     if df.empty:
         return html.Div("No data available."), go.Figure()
 
-    # Dernier prix et son timestamp
+    # Récupération du dernier prix et du timestamp
     latest_price = df['price'].iloc[-1]
     latest_timestamp = df['timestamp'].iloc[-1]
     last_time_str = latest_timestamp.strftime("%Y-%m-%d %H:%M:%S")
@@ -201,7 +196,7 @@ def update_dashboard(selected_range):
         ]
     )
 
-    # Set the interval for the chart
+    # Définir l'intervalle pour le graphique
     now = df['timestamp'].max()
     if selected_range == '1H':
         start_time = now - pd.Timedelta(hours=1)
@@ -236,14 +231,13 @@ def update_dashboard(selected_range):
 )
 def update_basic(selected_range):
     """
-    Calculates open, high, low, close for the selected interval (1H, 24H, 7D)
+    Calcule et affiche les indicateurs open, high, low, close pour l'intervalle sélectionné.
     """
     df = load_data()
     if df.empty:
         return html.Div("No data available.")
 
-    # Filtering by interval
-    now = df['timestamp'].max()
+    now = df['timestamp'].iloc[-1]
     if selected_range == '1H':
         start_time = now - pd.Timedelta(hours=1)
     elif selected_range == '24H':
@@ -271,21 +265,20 @@ def update_basic(selected_range):
 
 @app.callback(
     Output('daily-report', 'children'),
-    Input('range-selector', 'value')  # Used to trigger the daily report update
+    Input('range-selector', 'value')  # Cet input permet juste de déclencher l'update
 )
 def update_daily_report(selected_range):
     """
-    Displays daily report at 8 PM.
-    If before 8 PM, shows the previous day's report.
-    Calculates: open, close, high, low, volatility, and evolution.
+    Affiche le rapport quotidien (mis à jour à 20h) avec open, close, high, low, volatilité et évolution.
+    On utilise uniquement les données du CSV (timestamp et price).
     """
     df = load_data()
     if df.empty:
         return html.Div("No data for daily report.")
 
-    # If the current time is before 8 p.m., the report from the previous day is displayed.
     now = pd.Timestamp.now()
     report_date = now.normalize()
+    # Si avant 20h, afficher le rapport de la veille
     if now.hour < 20:
         report_date = report_date - pd.Timedelta(days=1)
 
@@ -302,25 +295,21 @@ def update_daily_report(selected_range):
     high_price = day_data['price'].max()
     low_price = day_data['price'].min()
 
-    # Calculation of volatility in percentage
+    # Calcul de la volatilité en % (différence relative entre high et low par rapport à l'open)
     volatility = (high_price - low_price) / open_price * 100
     evolution = (close_price - open_price) / open_price * 100
 
     report_layout = html.Div([
-        html.H3(f"Daily report for {report_date.date()} at 8 PM"),
+        html.H3(f"Daily report for {report_date.date()} at 20:00"),
         html.P(f"Open:  ${open_price:,.2f}"),
         html.P(f"Close: ${close_price:,.2f}"),
         html.P(f"High:  ${high_price:,.2f}"),
         html.P(f"Low:   ${low_price:,.2f}"),
         html.P(f"Volatility: {volatility:.2f}%", style={'fontWeight': 'bold'}),
-        html.P(
-                f"Evolution: {evolution:.2f}%",
-                style={
-                    'color': 'green' if evolution >= 0 else 'red',
-                    'fontWeight': 'bold'
-    }
-)
-
+        html.P(f"Evolution: {evolution:.2f}%", style={
+            'color': 'green' if evolution >= 0 else 'red',
+            'fontWeight': 'bold'
+        })
     ], style={
         'border': '1px solid #ccc',
         'padding': '10px',
@@ -332,4 +321,5 @@ def update_daily_report(selected_range):
     return report_layout
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Pour le développement, utilisez app.run_server (assurez-vous de choisir un port différent si nécessaire)
+    app.run_server(debug=True, host='0.0.0.0', port=8051)

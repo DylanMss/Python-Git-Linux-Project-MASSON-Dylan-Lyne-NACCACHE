@@ -26,7 +26,8 @@ PRICE_CLEAN=$(echo "$PRICE" | tr -d '$' | tr -d ',')
 
 # Save data to CSV file
 CSV_FILE="prices.csv"
-TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
+TIMESTAMP=$(TZ="Europe/Paris" date "+%Y-%m-%d %H:%M:%S")
+
 
 # Create header
 if [ ! -f "$CSV_FILE" ]; then
